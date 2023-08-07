@@ -1,0 +1,886 @@
+#lang racket
+;Se invoca la libreria a utilizar.
+(require graphics/graphics)
+;----------------------------------------------STRINGS----------------------------------------------------------------------
+( define fichas ( make-string 64 #\u0080 ) )
+
+( define ( Convertir inicio final )
+   ( if ( < inicio final )
+        ( begin
+           ( string-set! fichas inicio ( integer->char inicio ) )
+           ( Convertir ( + inicio 1 ) final )
+           );Final del begin
+        (void)
+        );Final del if
+   );Final de la funcion Convertir.
+( Convertir 0 64 )
+( define Posicion ( string-copy "T2C2A2R2K2A2C2T2N2N2N2N2N2N2N2N2----------------------------------------------------------------B1B1B1B1B1B1B1B1T1C1A1R1K1A1C1T1") )
+( define Imagenes "
+    P1.pngT2.pngC2.pngA2.pngR2.pngK2.pngA2.pngC2.pngT2.pngN2.pngN2.pngN2.pngN2.pngN2.pngN2.pngN2.pngN2.pngB1.pngB1.pngB1.pngB1.pngB1.pngB1.pngB1.pngB1.pngT1.pngC1.pngA1.pngR1.pngK1.pngA1.pngC1.pngT1.png" )
+
+( define x2 ( string-copy " " ) )
+( define y2 ( string-copy " " ) )
+( define x3 ( string-copy " " ) )
+( define y3 ( string-copy " " ) )
+( define add_viejo ( string-copy " " ) )
+( define add_nuevo ( string-copy " " ) )
+( define turno ( string-copy "1" ) )
+( define add-rey-blanco ( string-copy " " ) )
+( string-set! add-rey-blanco 0 ( integer->char 120 ) )
+( define add-rey-negro ( string-copy " " ) )
+( string-set! add-rey-negro 0 ( integer->char 8 ) )
+( define ( Cambiar_turno )
+   ( if ( equal? turno "1" )
+        ( string-set! turno 0 #\2 )
+        ( string-set! turno 0 #\1 )
+    )
+ )
+( define ( Valor_Absoluto n )
+   ( if ( < n 0 )
+        ( * n -1 )
+        n )
+ );Final de la funcion Valor_Absoluto.
+
+;-------------------------------------------------TABLERO-------------------------------------------------------------------------
+
+( open-graphics )
+( define Pantalla_De_Juego (open-viewport "Pantalla_De_Juego1" 1025  680 ) )
+
+;----------------------------------------------HACER-TABLERO----------------------------------------------------------------------
+
+(((draw-pixmap-posn "Madera_Fondo.png") Pantalla_De_Juego) (make-posn -1 0))
+((draw-solid-rectangle Pantalla_De_Juego ) (make-posn 25 25 ) 650 650 "Brown" )
+((draw-solid-rectangle Pantalla_De_Juego ) (make-posn 40 40 ) 620 620 "SaddleBrown" )
+((draw-rectangle Pantalla_De_Juego ) (make-posn 40 40 ) 620 620 )
+((draw-rectangle Pantalla_De_Juego ) (make-posn 25 25 ) 650 650 )
+
+;Se establece la fórmula recursiva para imprimir el tablero
+( define ( Tablero Contadorx Contadory x y )
+   ( cond
+      [ ( < y 600 ) 
+        ( if  [ and { <= Contadorx 4 } { <= Contadory 4 } ]
+              ( begin
+                 ((draw-solid-rectangle Pantalla_De_Juego ) (make-posn x y ) 75 75 "MediumForestGreen" )
+                 ((draw-solid-rectangle Pantalla_De_Juego ) (make-posn ( + x 75 ) y ) 75 75 "Wheat" )
+                 ((draw-solid-rectangle Pantalla_De_Juego ) (make-posn ( + 75 x) ( + 75 y ) ) 75 75 "MediumForestGreen" )
+                 ((draw-solid-rectangle Pantalla_De_Juego ) (make-posn x ( + 75 y ) ) 75 75 "Wheat" )
+                 ( Tablero ( + Contadorx 1 ) Contadory ( + x 150 ) y )
+                 );Final begin
+              ( Tablero ( - Contadorx 4 ) ( + Contadory 1 ) ( - x 600 ) ( + y 150 ) )
+              );Final del if
+        ]
+      [ else (void) ]
+      );Final del cond
+   );Final de la funcion del tablero
+
+( Tablero 1 1 50 50 )
+;----------------------------------------------CLICKS-----------------------------------------------------------------------------
+
+( define ( Hacer_click1 )
+   ( define Click1 ( get-mouse-click Pantalla_De_Juego ) )
+   ( if [and (>= (posn-x (mouse-click-posn Click1)) 50 )
+             (>=(posn-y (mouse-click-posn Click1)) 50 )
+             (<=(posn-x (mouse-click-posn Click1)) 650 )
+             (<=(posn-y (mouse-click-posn Click1)) 650 )]
+        ( begin ( printf "\n Click 1:\n " ) ( Hallar_casilla1 Click1 0 0 -2 ) )
+        ( Hacer_click1 )
+        );Final del if
+ );Final de la funcio hacer click
+
+( define ( Hacer_click2 )
+   ( define Click2 ( get-mouse-click Pantalla_De_Juego ) )
+   ( if [and (>= (posn-x (mouse-click-posn Click2)) 50 )
+             (>=(posn-y (mouse-click-posn Click2)) 50 )
+             (<=(posn-x (mouse-click-posn Click2)) 650 )
+             (<=(posn-y (mouse-click-posn Click2)) 650 )]
+        ( begin  ( printf "\n Click 2:\n " )( Hallar_casilla2 Click2 0 0 -2 ) )
+        ( Hacer_click1 )
+        );Final del if
+ );Final de la funcio hacer click
+
+( define ( Hallar_casilla1 click contx conty add )
+
+   ( cond
+      [ (and 
+         (>= (posn-x (mouse-click-posn click)) 50 )
+         (>=(posn-y (mouse-click-posn click)) 50 )
+         (<=(posn-x (mouse-click-posn click)) ( + 50 ( * 75 contx ) ) )
+         (<=(posn-y (mouse-click-posn click)) ( + 50 ( * 75 conty ) ) ) )
+        ( printf "Click1 en x: ~a.y en y: ~a.\n add:~a \n" contx conty ( - add 16 ) )
+        ( string-set! x2 0 ( integer->char contx ) )
+        ( string-set! y2 0 ( integer->char conty ) )
+        ( string-set! add_viejo 0 ( integer->char add ) )
+        ( Verificar ( - add 16 ) contx conty ) ]
+      [ ( <= contx 7 ) ( Hallar_casilla1 click ( + 1 contx ) conty  ( + 2 add ) ) ]
+      [ ( >= contx 7 ) ( Hallar_casilla1 click  ( - contx 7 ) ( + 1 conty ) ( + 2 add) ) ]
+      [ else ( Hacer_click1 ) ]
+      )
+   
+   );Final de la funcion Hallar_casilla
+
+( define ( Hallar_casilla2 click contx conty add )
+
+   ( cond
+      [ (and 
+         (>= (posn-x (mouse-click-posn click)) 50 )
+         (>=(posn-y (mouse-click-posn click)) 50 )
+         (<=(posn-x (mouse-click-posn click)) ( + 50 ( * 75 contx ) ) )
+         (<=(posn-y (mouse-click-posn click)) ( + 50 ( * 75 conty ) ) ) )
+        ( printf "Click2 en x: ~a.y en y: ~a.\n add:~a \n" contx conty ( - add 16 ) )
+        ( string-set! x3 0 ( integer->char contx ) )
+        ( string-set! y3 0 ( integer->char conty ) )
+        ( string-set! add_nuevo 0 ( integer->char add ) )
+        ]
+      [ ( <= contx 7 ) ( Hallar_casilla2 click ( + 1 contx ) conty  ( + 2 add ) ) ]
+      [ ( >= contx 7 ) ( Hallar_casilla2 click  ( - contx 7 ) ( + 1 conty ) ( + 2 add) ) ]
+      [ else ( Hacer_click1 ) ]
+      )
+   
+   );Final de la funcion Hallar_casilla
+;-----------------------------------------------NO-COMER-EL-REY----------------------------------------------------------------
+
+( define ( Come_el_rey? )
+   ( if  ( equal? ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 16 ) ) #\K )
+         #t
+         #f
+         );Final del if
+
+ )
+
+;----------------------------------------------NO-SALTAR-FICHAS----------------------------------------------------------------
+( define ( Evitar_Salto x y  add )
+   ( printf "\n\nx Final :~a Y Final:~a\n\n" x y )
+   ( cond
+      ;Para moverse en diagonal
+      [ ( and ( > x ( char->integer ( string-ref x3 0 )) ) ( > y ( char->integer ( string-ref y3 0 )) ) ( equal? #\- ( string-ref Posicion ( - add 18 ) ) ) )
+        ( displayln "Avanza arriba-izquierda" )
+        ( Evitar_Salto ( - x 1 ) ( - y 1 )  ( - add 18 ) ) ]
+      [ ( and ( > x ( char->integer ( string-ref x3 0 )) ) ( < y ( char->integer ( string-ref y3 0 )) ) ( equal? #\- ( string-ref Posicion ( + add 14 ) ) ) )
+        ( displayln "Avanza abajo-izquierda" )
+        ( Evitar_Salto ( - x 1 ) ( + y 1 )  ( + add 18 ) ) ]
+      [ ( and ( < x ( char->integer ( string-ref x3 0 )) ) ( > y ( char->integer ( string-ref y3 0 )) ) ( equal? #\- ( string-ref Posicion ( - add 14 ) ) ) )
+        ( displayln "Avanza arriba-derecha" )
+        ( Evitar_Salto ( + x 1 ) ( - y 1 )  ( - add 14 ) ) ]
+      [ ( and ( < x ( char->integer ( string-ref x3 0 )) ) ( < y ( char->integer ( string-ref y3 0 )) ) ( equal? #\- ( string-ref Posicion ( + add 18 ) ) ) )
+        ( displayln "Avanza abajo-derecha" )
+        ( Evitar_Salto ( + x 1 ) ( + y 1 )  ( + add 18 ) ) ]
+      ;Para moverse en linea recta
+      [ ( and ( > x ( char->integer ( string-ref x3 0 )) ) ( = y ( char->integer ( string-ref y3 0 )) ) ( equal? #\- ( string-ref Posicion ( - add 2 ) ) ) ) ( displayln "Avanza izquierda" )
+                                                                                                                ( Evitar_Salto ( - x 1 ) y  ( - add 2 ) ) ]
+      [ ( and ( < x ( char->integer ( string-ref x3 0 )) ) ( = y ( char->integer ( string-ref y3 0 )) ) ( equal? #\- ( string-ref Posicion ( + add 2 ) ) ) ) ( displayln "Avanza derecha" )
+                                                                                                                ( Evitar_Salto ( + x 1 ) y  ( + add 2 ) ) ]
+      [ ( and ( = x ( char->integer ( string-ref x3 0 )) ) ( > y ( char->integer ( string-ref y3 0 )) ) ( equal? #\- ( string-ref Posicion ( - add 16 ) ) ) ) ( displayln "Avanza arriba" )
+                                                                                                                 ( Evitar_Salto x ( - y 1 )  ( - add 16 ) ) ]
+      [ ( and ( = x ( char->integer ( string-ref x3 0 )) ) ( < y ( char->integer ( string-ref y3 0 )) ) ( equal? #\- ( string-ref Posicion ( + add 16 ) ) ) ) ( displayln "Avanza abajo" )
+                                                                                                                 ( Evitar_Salto x ( + y 1 )  ( + add 16 ) ) ]
+      [ ( and ( = ( + 1 x ) ( char->integer ( string-ref x3 0 )) ) ( = y ( char->integer ( string-ref y3 0 )) ) ) #t ]
+      [ ( and ( = ( - x 1 ) ( char->integer ( string-ref x3 0 )) ) ( = y ( char->integer ( string-ref y3 0 )) ) ) #t ]
+      [ ( and ( = x ( char->integer ( string-ref x3 0 )) ) ( = ( + 1 y ) ( char->integer ( string-ref y3 0 )) ) ) #t ]
+      [ ( and ( = x ( char->integer ( string-ref x3 0 )) ) ( = ( - y 1 ) ( char->integer ( string-ref y3 0 )) ) ) #t ]
+      [ ( and ( = ( + 1 x ) ( char->integer ( string-ref x3 0 )) ) ( = ( + 1 y ) ( char->integer ( string-ref y3 0 )) ) ) #t ]
+      [ ( and ( = ( - x 1 ) ( char->integer ( string-ref x3 0 )) ) ( = ( + 1 y ) ( char->integer ( string-ref y3 0 )) ) ) #t ]
+      [ ( and ( = ( - x 1 ) ( char->integer ( string-ref x3 0 )) ) ( = ( - y 1 ) ( char->integer ( string-ref y3 0 )) ) ) #t ]
+      [ ( and ( = ( + 1 x ) ( char->integer ( string-ref x3 0 )) ) ( = ( - y 1 ) ( char->integer ( string-ref y3 0 )) ) ) #t ]
+      [ ( and ( = x ( char->integer ( string-ref x3 0 )) ) ( = y ( char->integer ( string-ref y3 0 )) ) ) #t ]
+      [ else #f ]
+      );Final del cond
+
+
+   )
+
+
+;----------------------------------------------POSICIONES-DE-LAS-FICHAS--------------------------------------------------------
+( define ( misma_posicion_rey? )
+   ( if ( equal? turno "1" )
+        (string-set! add-rey-blanco 0 ( integer->char ( - ( char->integer ( string-ref add_nuevo 0 )) 16 )) )
+        (string-set! add-rey-negro 0 ( integer->char ( - ( char->integer ( string-ref add_nuevo 0 )) 16 )) )
+     )
+( if { not ( and ( = ( char->integer ( string-ref x2 0 )) ( char->integer ( string-ref x3 0 )) ) ( = ( char->integer ( string-ref y2 0 )) ( char->integer ( string-ref y3 0 )) )) }
+            ( Cambiar_posicion ( char->integer ( string-ref x3 0 )) ( char->integer ( string-ref y3 0 )) ( string-append ( string ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 16 ) )) ( string ( string-ref Posicion ( - ( + 1 ( char->integer ( string-ref add_viejo 0 )) ) 16 ) )) ".png" ) ( - ( char->integer ( string-ref add_viejo 0 ) ) 16) ( - ( char->integer ( string-ref add_nuevo 0 )) 16 ) )
+        ( Hacer_click1 ))
+
+);FInal de la funcion misma_posicion?
+
+( define ( misma_posicion? )
+( if { not ( and ( = ( char->integer ( string-ref x2 0 )) ( char->integer ( string-ref x3 0 )) ) ( = ( char->integer ( string-ref y2 0 )) ( char->integer ( string-ref y3 0 )) )) }
+        ( Cambiar_posicion ( char->integer ( string-ref x3 0 )) ( char->integer ( string-ref y3 0 )) ( string-append ( string ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 16 ) )) ( string ( string-ref Posicion ( - ( + 1 ( char->integer ( string-ref add_viejo 0 )) ) 16 ) )) ".png" ) ( - ( char->integer ( string-ref add_viejo 0 ) ) 16) ( - ( char->integer ( string-ref add_nuevo 0 )) 16 ) )
+        ( Hacer_click1 ))
+
+);FInal de la funcion misma_posicion?
+( define ( Verificar add x y )
+   ( printf "add de verificar: ~a" add )
+( cond
+   [ ( equal? ( string-ref Posicion add ) #\T ) ( display "Toco torre" ) ( Hacer_click2 )
+                                                ( if ( equal? ( Evitar_Salto x y  add ) #t ) ( Mover_Torre x y ) ( Hacer_click1 ) )  ]
+   [ ( equal? ( string-ref Posicion add ) #\C ) ( display "Toco caballo" )  ( Hacer_click2 ) ( Mover_Caballo x y )]
+   [ ( equal? ( string-ref Posicion add ) #\A ) ( display "Toco alfil" ) ( Hacer_click2 )
+                                                ( if ( equal? ( Evitar_Salto x y  add ) #t ) ( Mover_Alfil x y ) ( Hacer_click1 ) ) ]
+   [ ( equal? ( string-ref Posicion add ) #\R ) ( display "Toco reina" ) ( Hacer_click2 )
+                                                ( if ( equal? ( Evitar_Salto x y  add ) #t ) ( Mover_Reina x y ) ( Hacer_click1 ) ) ]
+   [ ( equal? ( string-ref Posicion add ) #\K ) ( display "Toco rey" ) ( Hacer_click2 )
+                                                ( if ( equal? ( Evitar_Salto x y  add ) #t ) ( Mover_Rey x y ) ( Hacer_click1 ) ) ]
+   [ { or ( equal? ( string-ref Posicion add ) #\B ) ( equal? ( string-ref Posicion add ) #\N )} ( display "Toco peon" ) ( Hacer_click2 )
+                                                                                                 ( if ( equal? ( Evitar_Salto x y  add ) #t ) ( Mover_Peon add x y ) ( Hacer_click1 ) ) ]
+   [ else ( Hacer_click1 ) ]
+ );Final del cond
+)
+;----------------------------------------------PINTA-CASILLAS-------------------------------------------------------------
+( define ( pintar )
+( if ( = ( remainder ( + ( char->integer ( string-ref x2 0 )) ( char->integer ( string-ref y2 0 )) ) 2 ) 0 )
+        ( ( draw-solid-rectangle Pantalla_De_Juego )
+          ( make-posn ( - ( * 75 ( char->integer ( string-ref x2 0 )) ) 25)
+                      ( - ( * 75 ( char->integer ( string-ref y2 0 )) ) 25) ) 75 75 "MediumForestGreen"  )
+        ( ( draw-solid-rectangle Pantalla_De_Juego )
+          ( make-posn ( - ( * 75 ( char->integer ( string-ref x2 0 )) ) 25)
+                      ( - ( * 75 ( char->integer ( string-ref y2 0 )) ) 25) ) 75 75 "Wheat" )
+    )
+
+   ( if ( = ( remainder ( + ( char->integer ( string-ref x3 0 )) ( char->integer ( string-ref y3 0 )) ) 2 ) 0 )
+        ( ( draw-solid-rectangle Pantalla_De_Juego )
+          ( make-posn ( - ( * 75 ( char->integer ( string-ref x3 0 )) ) 25)
+                      ( - ( * 75 ( char->integer ( string-ref y3 0 )) ) 25) ) 75 75 "MediumForestGreen"  )
+        ( ( draw-solid-rectangle Pantalla_De_Juego )
+          ( make-posn ( - ( * 75 ( char->integer ( string-ref x3 0 )) ) 25)
+                      ( - ( * 75 ( char->integer ( string-ref y3 0 )) ) 25) ) 75 75 "Wheat" )
+    )
+   )
+;----------------------------------------------CAMBIA-DATOS---------------------------------------------------------------
+( define ( Cambiar_posicion x y imagen add_Viejo add_Nuevo )
+   ( printf "\n\n ~a se come el rey o no \n\n" ( Come_el_rey? ))
+   ( pintar )
+   ( ( ( draw-pixmap-posn imagen ) Pantalla_De_Juego ) ( make-posn ( * x 75 ) ( - ( * y 75 ) 20 ) ) )
+   ( string-set! Posicion add_Nuevo ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 ) ) 16)) )
+   ( string-set! Posicion ( + 1 add_Nuevo ) ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 ) ) 15)) )
+   ( string-set! Posicion add_Viejo #\- )
+   ( string-set! Posicion ( + 1 add_Viejo) #\- )
+   #|( if ( equal? #f ( Revisar_casillas ) )
+        (void)
+        ( begin
+           ( Cambiar_posicion ( char->integer ( string-ref x2 0 )) ( char->integer ( string-ref y2 0 )) imagen add_Viejo add_Nuevo )
+           ( string-set! Posicion add_Nuevo #\- )
+           ( string-set! Posicion ( + 1 add_Nuevo ) #\- )
+           ( string-set! Posicion ( - ( char->integer ( string-ref add_viejo 0 ) ) 16) ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 ) ) 16)) )
+           ( string-set! Posicion ( - ( char->integer ( string-ref  add_viejo 0 ) ) 15 ) ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 ) ) 15)) )
+        )
+        )|#
+   #|( if ( equal? #t ( Revisar_casillas ) ) 
+   ( Jaque-mate )
+   (void)
+   )|#
+   ( Cambiar_turno )
+   ( Mostar_turno )
+   ( Revisar_casillas )
+   ( Hacer_click1 )
+ )
+;----------------------------------------------MOVIMIENTO-DE-LAS-FICHAS--------------------------------------------------------
+;TORRE
+( define ( Mover_Torre x y )
+   ( if ( and ( equal? ( Come_el_rey? ) #f )
+          ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+          ( or ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "2" ) )
+               ( equal? #\- ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ))
+     ( or ( = x ( char->integer ( string-ref x3 0 )) ) ( = y ( char->integer ( string-ref y3 0 )) ) ))
+        ( misma_posicion? ) ( Hacer_click1 )
+    );Final del if
+ )
+;CABALLO
+( define ( Mover_Caballo x y )
+   ( if    ( and ( equal? ( Come_el_rey? ) #f )
+             ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+                  ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+             ( or ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "2" ) )
+               ( equal? #\- ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ))
+     ( or ( and ( = ( + x 1 ) ( char->integer ( string-ref x3 0 )) ) ( = ( - y 2 ) ( char->integer ( string-ref y3 0 )) ) )
+             ( and ( = ( - x 1 ) ( char->integer ( string-ref x3 0 )) ) ( = ( - y 2 ) ( char->integer ( string-ref y3 0 )) ) )
+             ( and ( = ( + x 1 ) ( char->integer ( string-ref x3 0 )) ) ( = ( + y 2 ) ( char->integer ( string-ref y3 0 )) ) )
+             ( and ( = ( - x 1 ) ( char->integer ( string-ref x3 0 )) ) ( = ( + y 2 ) ( char->integer ( string-ref y3 0 )) ) )
+             ( and ( = ( + x 2 ) ( char->integer ( string-ref x3 0 )) ) ( = ( - y 1 ) ( char->integer ( string-ref y3 0 )) ) )
+             ( and ( = ( - x 2 ) ( char->integer ( string-ref x3 0 )) ) ( = ( - y 1 ) ( char->integer ( string-ref y3 0 )) ) )
+             ( and ( = ( + x 2 ) ( char->integer ( string-ref x3 0 )) ) ( = ( + y 1 ) ( char->integer ( string-ref y3 0 )) ) )
+             ( and ( = ( - x 2 ) ( char->integer ( string-ref x3 0 )) ) ( = ( + y 1 ) ( char->integer ( string-ref y3 0 )) ) ) ))
+        ( misma_posicion? )
+        ( Hacer_click1 )
+)
+ )
+;ALFIL
+( define ( Mover_Alfil x y )
+   ( if ( and ( equal? ( Come_el_rey? ) #f )
+          ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+          ( or ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "2" ) )
+               ( equal? #\- ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ))
+     ( = ( Valor_Absoluto ( - x ( char->integer ( string-ref x3 0 )))) ( Valor_Absoluto ( - y ( char->integer ( string-ref y3 0 )))) ) )
+        ( misma_posicion? )
+        
+        ( Hacer_click1 )
+    )
+ )
+
+;REINA
+( define ( Mover_Reina x y )
+   ( if ( and ( equal? ( Come_el_rey? ) #f )
+          ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+          ( or ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "2" ) )
+               ( equal? #\- ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ))
+     ( or ( and
+          ( = ( Valor_Absoluto ( - x ( char->integer ( string-ref x3 0 ))) ) ( Valor_Absoluto ( - y ( char->integer ( string-ref y3 0 )))) ))
+             ( = x ( char->integer ( string-ref x3 0 )) ) ( = y ( char->integer ( string-ref y3 0 )) ) ) )
+        ( misma_posicion? )
+        ( Hacer_click1 )
+    )
+ )
+
+;REY
+( define ( Mover_Rey x y )
+   ( if ( and ( equal? ( Come_el_rey? ) #f )
+          ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+          ( or ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "2" ) )
+               ( equal? #\- ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ))
+          ( or ( and
+                 ( = ( Valor_Absoluto ( - x ( char->integer ( string-ref x3 0 ))) ) ( Valor_Absoluto ( - y ( char->integer ( string-ref y3 0 )))) ))
+               ( = x ( char->integer ( string-ref x3 0 )) ) ( = y ( char->integer ( string-ref y3 0 )) ) )
+          ( or  ( = ( + x 1 ) ( char->integer ( string-ref x3 0 )) ) ( = ( + y 1 ) ( char->integer ( string-ref y3 0 )) )
+                ( = ( - x 1 ) ( char->integer ( string-ref x3 0 )) ) ( = ( - y 1 ) ( char->integer ( string-ref y3 0 )) )
+         ))
+        ( misma_posicion_rey? )
+        ( Hacer_click1 )
+    )
+ )
+
+;PEON
+( define ( Mover_Peon add x y )
+   
+   ( if ( equal? ( string-ref Posicion add ) #\N )
+        ( cond
+           
+           [ ( and  ( <= add 30 ) ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+                                       ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+                    ( or ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "2" ) )
+               ( equal? #\- ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ))
+                    ( equal? #\- ( string-ref Posicion ( + add 16 ) ) )
+                    ( = x ( char->integer ( string-ref x3 0 )) )
+                    ( = ( + y 1 ) ( char->integer ( string-ref y3 0 )) ) )
+             ( Coronacion? x y )
+              ]
+           [ ( and  ( <= add 30 ) ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+                                       ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+                    ( or ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "2" ) )
+               ( equal? #\- ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ))
+                    ( equal? #\- ( string-ref Posicion ( + add 32 ) ) )
+                    ( = x ( char->integer ( string-ref x3 0 )) )
+                    ( = ( + y 2 ) ( char->integer ( string-ref y3 0 )) ) )
+             ( Coronacion? x y )
+              ]
+           [ ( and ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+                        ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+                   ( or ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "2" ) )
+               ( equal? #\- ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ))
+               ( equal? #\- ( string-ref Posicion ( + add 16 ) ) )
+               ( = x ( char->integer ( string-ref x3 0 )) )
+               ( = ( + y 1 ) ( char->integer ( string-ref y3 0 )) ) )
+             ( Coronacion? x y )
+              ]
+           ;Para comer blancas
+           [ ( and  ( equal? ( Come_el_rey? ) #f )
+                    ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+                         ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+                    ( or ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "2" ) )
+               ( equal? #\- ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ))
+                    ( = ( + x 1 ) ( char->integer ( string-ref x3 0 )) )
+                    ( = ( + y 1 ) ( char->integer ( string-ref y3 0 )) )
+                    ( equal? #\1 ( string-ref Posicion ( + add 19 ) ) ))
+             ( Coronacion? x y )
+              ]
+           [ ( and ( equal? ( Come_el_rey? ) #f )
+                   ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+                        ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+                   ( or ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "2" ) )
+               ( equal? #\- ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ))
+                   ( = ( - x 1 ) ( char->integer ( string-ref x3 0 )) )
+                   ( = ( + y 1 ) ( char->integer ( string-ref y3 0 )) )
+                   ( equal? #\1 ( string-ref Posicion ( + add 15 ) ) ))
+             ( Coronacion? x y )
+              ]
+           ( else ( Hacer_click1 ) )
+         );Final del cond
+        ( cond
+           
+           [ ( and  ( >= add 96 ) ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+                                       ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+                    ( or ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "2" ) )
+               ( equal? #\- ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ))
+                    ( equal? #\- ( string-ref Posicion ( - add 16 ) ) )
+                    ( = x ( char->integer ( string-ref x3 0 )) )
+                    ( = ( - y 1 ) ( char->integer ( string-ref y3 0 )) ) )
+             ( Coronacion? x y )
+              ]
+           [ ( and  ( >= add 96 ) ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+                                       ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+                    ( or ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "2" ) )
+               ( equal? #\- ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ))
+                    ( equal? #\- ( string-ref Posicion ( - add 32 ) ) )
+                    ( = x ( char->integer ( string-ref x3 0 )) )
+                    ( = ( - y 2 ) ( char->integer ( string-ref y3 0 )) ) )
+             ( Coronacion? x y )
+              ]
+           [ ( and ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+                        ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+                   ( or ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "2" ) )
+               ( equal? #\- ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ))
+               ( equal? #\- ( string-ref Posicion ( - add 16 ) ) )
+               ( = x ( char->integer ( string-ref x3 0 )) )
+               ( = ( - y 1 ) ( char->integer ( string-ref y3 0 )) ) )
+             ( Coronacion? x y )
+              ]
+           ;Para comer negras.
+           [ ( and ( equal? ( Come_el_rey? ) #f )
+                   ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+                        ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+                   ( or ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "2" ) )
+               ( equal? #\- ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ))
+                    ( = ( - x 1 ) ( char->integer ( string-ref x3 0 )) )
+                    ( = ( - y 1 ) ( char->integer ( string-ref y3 0 )) )
+                    ( equal? #\2 ( string-ref Posicion ( - add 17 ) ) ))
+             ( Coronacion? x y )
+              ]
+           [ ( and  ( equal? ( Come_el_rey? ) #f )
+                    ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+                         ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+                    ( or ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+               ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ) ( equal? turno "2" ) )
+               ( equal? #\- ( string-ref Posicion ( - ( char->integer ( string-ref add_nuevo 0 )) 15 ) ) ))
+                    ( = ( + x 1 ) ( char->integer ( string-ref x3 0 )) )
+                    ( = ( - y 1 ) ( char->integer ( string-ref y3 0 )) )
+                    ( equal? #\2 ( string-ref Posicion ( - add 13 ) ) ))
+             ( Coronacion? x y )
+              ]
+
+           ( else ( Hacer_click1 ) )
+         );FInal del cond
+   );Final del if
+ )
+;-----------------------------------------MOSTRAR-TURNO------------------------------------------------------------------------
+( define ( Mostar_turno )
+   ( if ( equal? turno "1" )
+        ( ( ( draw-pixmap-posn "Turno1.png" ) Pantalla_De_Juego ) ( make-posn 680 25 ) )
+        ( ( ( draw-pixmap-posn "Turno2.png" ) Pantalla_De_Juego ) ( make-posn 680 25 ) )
+        );Final del if
+   );Final de la funcion Mostrar_turno
+;-----------------------------------------REALIZAR-CORONACION------------------------------------------------------------------
+( define ( Coronacion? x y )
+   
+   ( cond
+      ;Para coronar Blancas
+      [ ( and  ( equal? ( Come_el_rey? ) #f )
+               ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+                    ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+               ( = ( - y 1 ) ( char->integer ( string-ref y3 0 )) )
+               ( = 1 ( char->integer ( string-ref y3 0 )) ) )
+        ( displayln "corono" ) ( Abrir-coronacion ) ]
+      ;Para coronar Negras
+      [ ( and  ( equal? ( Come_el_rey? ) #f )
+               ( or ( and ( equal? #\1 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "1" ) )
+                    ( and ( equal? #\2 ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 )) 15 ) ) ) ( equal? turno "2" ) ))
+               ( = ( + y 1 ) ( char->integer ( string-ref y3 0 )) )
+               ( = 8 ( char->integer ( string-ref y3 0 )) ) )
+        ( displayln "corono" ) ( Abrir-coronacion ) ]
+      [ else ( misma_posicion? ) ]
+      );Final del cond
+   );Final de la funcion Coronacion?
+;-----------------------------------------CLICK-DE-LA-CORONACION---------------------------------------------------------------
+( define ( Abrir-coronacion )
+   ( define Cambiar_peon (open-viewport "Coronación" 400 200 ) )
+   ( define ( Hacer_click3 )
+      ( define Click3 ( get-mouse-click Cambiar_peon ) )
+      ( if ( equal? turno "1" )
+      ( cond
+        [[and (>= (posn-x (mouse-click-posn Click3)) 50 )
+              (>=(posn-y (mouse-click-posn Click3)) 125 )
+              (<=(posn-x (mouse-click-posn Click3)) 125 )
+              (<=(posn-y (mouse-click-posn Click3)) 200 )]
+         ( printf "\n Corono Torre\n " ) ( Coronacion "T1.png" ) ]
+        [[and (>= (posn-x (mouse-click-posn Click3)) 126 )
+              (>=(posn-y (mouse-click-posn Click3)) 125 )
+              (<=(posn-x (mouse-click-posn Click3)) 200 )
+              (<=(posn-y (mouse-click-posn Click3)) 200 )]
+         ( printf "\n Corono Alfil\n " ) ( Coronacion "A1.png" ) ]
+        [[and (>= (posn-x (mouse-click-posn Click3)) 201 )
+              (>=(posn-y (mouse-click-posn Click3)) 125 )
+              (<=(posn-x (mouse-click-posn Click3)) 275 )
+              (<=(posn-y (mouse-click-posn Click3)) 200 )]
+         ( printf "\n Corono Caballo\n " ) ( Coronacion "C1.png" ) ]
+        [[and (>= (posn-x (mouse-click-posn Click3)) 276 )
+              (>=(posn-y (mouse-click-posn Click3)) 125 )
+              (<=(posn-x (mouse-click-posn Click3)) 350 )
+              (<=(posn-y (mouse-click-posn Click3)) 200 )]
+         ( printf "\n Corono Reina\n " ) ( Coronacion "R1.png" ) ]
+        [ else( Hacer_click3 ) ]
+        );Final del cond
+      ( cond
+        [[and (>= (posn-x (mouse-click-posn Click3)) 50 )
+              (>=(posn-y (mouse-click-posn Click3)) 125 )
+              (<=(posn-x (mouse-click-posn Click3)) 125 )
+              (<=(posn-y (mouse-click-posn Click3)) 200 )]
+         ( printf "\n Corono Torre\n " ) ( Coronacion "T2.png" ) ]
+        [[and (>= (posn-x (mouse-click-posn Click3)) 126 )
+              (>=(posn-y (mouse-click-posn Click3)) 125 )
+              (<=(posn-x (mouse-click-posn Click3)) 200 )
+              (<=(posn-y (mouse-click-posn Click3)) 200 )]
+         ( printf "\n Corono Alfil\n " ) ( Coronacion "A2.png" ) ]
+        [[and (>= (posn-x (mouse-click-posn Click3)) 201 )
+              (>=(posn-y (mouse-click-posn Click3)) 125 )
+              (<=(posn-x (mouse-click-posn Click3)) 275 )
+              (<=(posn-y (mouse-click-posn Click3)) 200 )]
+         ( printf "\n Corono Caballo\n " ) ( Coronacion "C2.png" ) ]
+        [[and (>= (posn-x (mouse-click-posn Click3)) 276 )
+              (>=(posn-y (mouse-click-posn Click3)) 125 )
+              (<=(posn-x (mouse-click-posn Click3)) 350 )
+              (<=(posn-y (mouse-click-posn Click3)) 200 )]
+         ( printf "\n Corono Reina\n " ) ( Coronacion "R2.png" ) ]
+        [ else( Hacer_click3 ) ]
+        );Final del cond
+      );Final del if
+      );Final de la funcio hacer click
+;-----------------------------------------CAMBIAR-EL-PEON----------------------------------------------------------------------
+   ( define ( Coronacion imagen )
+      ( pintar )
+      ( ( ( draw-pixmap-posn imagen ) Pantalla_De_Juego ) ( make-posn ( * 75 ( char->integer ( string-ref x3 0 ))) ( - ( * 75 ( char->integer ( string-ref y3 0 ))) 20 ) ) )
+      ( string-set! Posicion ( - ( char->integer ( string-ref add_nuevo 0 ) ) 16) ( string-ref imagen 0 ) )
+      ( string-set! Posicion ( - ( char->integer ( string-ref add_nuevo 0 ) ) 15) ( string-ref imagen 1 ) )
+      ( string-set! Posicion ( - ( char->integer ( string-ref add_viejo 0 ) ) 16) #\- )
+      ( string-set! Posicion ( - ( char->integer ( string-ref  add_viejo 0 ) ) 15 ) #\- )
+      ( Cambiar_turno )
+      ( Mostar_turno )
+      ( close-viewport Cambiar_peon )
+      ( Hacer_click1 )
+      );Final de la funcion Coronacion
+   
+;-----------------------------------------VENTANA-DE-CORONACION----------------------------------------------------------------
+   ( ( ( draw-pixmap-posn "Menu.png" ) Cambiar_peon ) ( make-posn -50 -60 ) )
+   ( ( ( draw-pixmap-posn "Texto.png" ) Cambiar_peon ) ( make-posn 10 80 ) )
+   ( if ( equal? turno "1" )
+   ( begin
+      ( ( ( draw-pixmap-posn "T1.png" ) Cambiar_peon ) ( make-posn 50 125 ) )
+      ( ( ( draw-pixmap-posn "A1.png" ) Cambiar_peon ) ( make-posn 140 125 ) )
+      ( ( ( draw-pixmap-posn "C1.png" ) Cambiar_peon ) ( make-posn 215 125 ) )
+      ( ( ( draw-pixmap-posn "R1.png" ) Cambiar_peon ) ( make-posn 315 125 ) )
+      )
+   ( begin
+      ( ( ( draw-pixmap-posn "T2.png" ) Cambiar_peon ) ( make-posn 50 125 ) )
+      ( ( ( draw-pixmap-posn "A2.png" ) Cambiar_peon ) ( make-posn 140 125 ) )
+      ( ( ( draw-pixmap-posn "C2.png" ) Cambiar_peon ) ( make-posn 215 125 ) )
+      ( ( ( draw-pixmap-posn "R2.png" ) Cambiar_peon ) ( make-posn 315 125 ) )
+      )
+   );Final del if
+   ( Hacer_click3 )
+   );Final de la funcion Abrir-coronacion
+;----------------------------------------------JAQUE---------------------------------------------------------------------------
+( define ( Revisar_casillas )
+   ( cond
+   [ ( equal? #t ( Revisar_peones_Blancos 0 ) ) #t ]
+   [ ( equal? #t ( Revisar_peones_Negros 0 )) #t ]
+   [ ( equal? #t ( Revisar_caballos_Negros 0  )) #t ]
+   [ ( equal? #t ( Revisar_caballos_Blancos 0 )) #t ]
+   [ ( equal? #t ( Jaque-Torres-parte-reinas )) #t ]
+   [ ( equal? #t ( Jaque-alfil-parte-reinas )) #t ]
+   [ else #f ]
+   );Final del cond.
+   );Final de la funcion Revisar_casillas
+( define ( Revisar_peones_Blancos inicio  )
+   ( if ( < inicio 128 )
+        ( if ( equal? ( string-ref Posicion inicio ) #\B )
+             ( begin
+                ( if ( or ( and ( equal? #\K ( string-ref Posicion ( - inicio 18 ) ) )
+                                ( equal? #\2 ( string-ref Posicion ( - inicio 17 ) ) ) )
+                          ( and ( equal? #\K ( string-ref Posicion ( - inicio 14 ) ) )
+                                ( equal? #\2 ( string-ref Posicion ( - inicio 13 ) ) ) ))
+                #t
+                ( Revisar_peones_Blancos ( + 2 inicio) )
+                 )
+               )
+             ( Revisar_peones_Blancos ( + 2 inicio) ))
+        (void)
+        );Final del if
+   );Final de la funcion Revisar_peones
+( define ( Revisar_peones_Negros inicio  )
+   ( if ( < inicio 128 )
+        ( if ( equal? ( string-ref Posicion inicio ) #\N )
+             ( begin
+                ( if ( or ( and ( equal? #\K ( string-ref Posicion ( + inicio 18 ) ) )
+                                ( equal? #\1 ( string-ref Posicion ( + inicio 19 ) ) ) )
+                          ( and ( equal? #\K ( string-ref Posicion ( + inicio 14 ) ) )
+                                ( equal? #\1 ( string-ref Posicion ( + inicio 15 ) ) ) ) )
+                #t
+                ( Revisar_peones_Negros ( + 2 inicio) )
+                 )
+               )
+             ( Revisar_peones_Negros ( + 2 inicio) ))
+        (void)
+        );Final del if
+   );Final de la funcion Revisar_peones
+( define ( Revisar_caballos_Blancos inicio )
+   ( if ( < inicio 128 )
+        ( if ( and ( equal? ( string-ref Posicion inicio ) #\C ) ( equal? ( string-ref Posicion ( + 1 inicio ) ) #\1 ) )
+             ( begin
+                ( if ( or 
+             
+             ( and ( >= inicio 20 )( equal? #\K ( string-ref Posicion ( - inicio 20 ) ) )
+                                ( equal? #\2 ( string-ref Posicion ( - inicio 19 ) ) ) )
+             ( and ( >= inicio 12 )( equal? #\K ( string-ref Posicion ( - inicio 12 ) ) )
+                                ( equal? #\2 ( string-ref Posicion ( - inicio 11 ) ) ) )
+             ( and ( >= inicio 34 )( equal? #\K ( string-ref Posicion ( - inicio 34 ) ) )
+                                ( equal? #\2 ( string-ref Posicion ( - inicio 33 ) ) ) )
+             ( and ( >= inicio 30 )( equal? #\K ( string-ref Posicion ( - inicio 30 ) ) )
+                                ( equal? #\2 ( string-ref Posicion ( - inicio 29 ) ) ) )
+             ( and ( <= inicio 108 )( equal? #\K ( string-ref Posicion ( + inicio 20 ) ) )
+                                ( equal? #\2 ( string-ref Posicion ( + inicio 21 ) ) ) )
+             ( and ( <= inicio 116 )( equal? #\K ( string-ref Posicion ( + inicio 12 ) ) )
+                                ( equal? #\2 ( string-ref Posicion ( + inicio 13 ) ) ) )
+             ( and ( <= inicio 94 )( equal? #\K ( string-ref Posicion ( + inicio 34 ) ) )
+                                ( equal? #\2 ( string-ref Posicion ( + inicio 35 ) ) ) )
+             ( and ( <= inicio 98 )( equal? #\K ( string-ref Posicion ( + inicio 30 ) ) )
+                                ( equal? #\2 ( string-ref Posicion ( + inicio 31 ) ) ) )
+              )
+                #t
+                ( Revisar_caballos_Blancos ( + 2 inicio) )
+                 )
+               )
+             ( Revisar_caballos_Blancos ( + 2 inicio) ))
+        (void)
+        );Final del if
+   );Final de la funcion Revisar_caballos_Blancos
+
+( define ( Revisar_caballos_Negros inicio )
+   ( if ( < inicio 128 )
+        ( if ( and ( equal? ( string-ref Posicion inicio ) #\C ) ( equal? ( string-ref Posicion ( + 1 inicio ) ) #\2 ) )
+             ( begin
+                ( if ( or 
+             
+             ( and ( >= inicio 20 )( equal? #\K ( string-ref Posicion ( - inicio 20 ) ) )
+                                ( equal? #\1 ( string-ref Posicion ( - inicio 19 ) ) ) )
+             ( and ( >= inicio 12 )( equal? #\K ( string-ref Posicion ( - inicio 12 ) ) )
+                                ( equal? #\1 ( string-ref Posicion ( - inicio 11 ) ) ) )
+             ( and ( >= inicio 34 )( equal? #\K ( string-ref Posicion ( - inicio 34 ) ) )
+                                ( equal? #\1 ( string-ref Posicion ( - inicio 33 ) ) ) )
+             ( and ( >= inicio 30 )( equal? #\K ( string-ref Posicion ( - inicio 30 ) ) )
+                                ( equal? #\1 ( string-ref Posicion ( - inicio 29 ) ) ) )
+             ( and ( <= inicio 108 )( equal? #\K ( string-ref Posicion ( + inicio 20 ) ) )
+                                ( equal? #\1 ( string-ref Posicion ( + inicio 21 ) ) ) )
+             ( and ( <= inicio 116 )( equal? #\K ( string-ref Posicion ( + inicio 12 ) ) )
+                                ( equal? #\1 ( string-ref Posicion ( + inicio 13 ) ) ) )
+             ( and ( <= inicio 94 )( equal? #\K ( string-ref Posicion ( + inicio 34 ) ) )
+                                ( equal? #\1 ( string-ref Posicion ( + inicio 35 ) ) ) )
+             ( and ( <= inicio 98 )( equal? #\K ( string-ref Posicion ( + inicio 30 ) ) )
+                                ( equal? #\1 ( string-ref Posicion ( + inicio 31 ) ) ) )
+              )
+                #\t
+                ( Revisar_caballos_Negros ( + 1 inicio) )
+                 )
+               )
+             ( Revisar_caballos_Negros ( + 1 inicio) ))
+        (void)
+        );Final del if
+   )
+( define ( Jaque-Torres-parte-reinas )
+   ( cond
+   [( equal? #t ( Revisar_salto_Torre_Blanca_abajo ( char->integer ( string-ref add-rey-negro 0 ))  ))#t]
+   [( equal? #t ( Revisar_salto_Torre_Blanca_arriba ( char->integer ( string-ref add-rey-negro 0 ))  ))#t]
+   [( equal? #t ( Revisar_salto_Torre_Blanca_derecha ( char->integer ( string-ref add-rey-negro 0 ))  ))#t]
+   [( equal? #t ( Revisar_salto_Torre_Blanca_izquierda ( char->integer ( string-ref add-rey-negro 0 ))  ))#t]
+   ;( printf "\n Posicion rey negro: ~a\n "( char->integer ( string-ref add-rey-negro 0 )) )
+   [( equal? #t ( Revisar_salto_Torre_Negra_abajo ( char->integer ( string-ref add-rey-blanco 0 ))  ))#t]
+   [( equal? #t ( Revisar_salto_Torre_Negra_arriba ( char->integer ( string-ref add-rey-blanco 0 ))  ))#t]
+   [( equal? #t ( Revisar_salto_Torre_Negra_derecha ( char->integer ( string-ref add-rey-blanco 0 ))  ))#t]
+   [( equal? #t ( Revisar_salto_Torre_Negra_izquierda ( char->integer ( string-ref add-rey-blanco 0 ))  ))#t]
+   ;( printf "\n Posicion rey blanco: ~a\n "( char->integer ( string-ref add-rey-blanco 0 )) )
+   [ else #f ]
+   )
+   )
+
+( define ( Revisar_salto_Torre_Blanca_abajo add  )
+   ( cond
+      ;Rey-mira-abajo
+      [ ( or ( = add 0 ) ( = add 2 ) ( = add 4 ) ( = add 6 )  ( = add 8 ) ( = add 10 ) ( = add 12 ) ( = add 14 )) #f ]
+      [ ( and  ( <= add 111 ) ( equal? ( string-ref Posicion ( + add 16 ) ) #\- ) ) ( Revisar_salto_Torre_Blanca_abajo ( + add 16 ) )  ]
+      [ ( and  ( <= add 111 ) ( or ( equal? ( string-ref Posicion ( + add 16 ) ) #\R ) ( equal? ( string-ref Posicion ( + add 16 ) ) #\T )) ( equal? ( string-ref Posicion ( + add 17 ) ) #\1 ) ) #t ]
+      )
+   )
+( define ( Revisar_salto_Torre_Blanca_arriba add  )
+   ( cond
+      ;Rey-mira-arriba
+      [ ( or ( = add 112 ) ( = add 114 ) ( = add 116 ) ( = add 118 )  ( = add 120 ) ( = add 122 ) ( = add 124 ) ( = add 126 )) #f ]
+      [ ( and  ( >= add 16 ) ( equal? ( string-ref Posicion ( - add 16 ) ) #\- ) ) ( Revisar_salto_Torre_Blanca_arriba ( - add 16 )  )  ]
+      [ ( and  ( >= add 16 ) ( or ( equal? ( string-ref Posicion ( - add 16 ) ) #\R ) ( equal? ( string-ref Posicion ( - add 16 ) ) #\T )) ( equal? ( string-ref Posicion ( - add 15 ) ) #\1 ) ) #t ]
+      )
+   )
+( define ( Revisar_salto_Torre_Blanca_derecha add  )
+   ( cond
+      ;Rey-mira-derecha
+      [ ( or ( = add 0 ) ( = add 16 ) ( = add 32 ) ( = add 48 )  ( = add 64 ) ( = add 80 ) ( = add 96 ) ( = add 112 )) #f ] 
+      [ ( and  ( < add 127 ) ( equal? ( string-ref Posicion ( + add 2 ) ) #\- ) ) ( Revisar_salto_Torre_Blanca_derecha ( + add 2 )  )  ]
+      [ ( and  ( < add 127 ) ( or ( equal? ( string-ref Posicion ( + add 2 ) ) #\R ) ( equal? ( string-ref Posicion ( + add 2 ) ) #\T )) ( equal? ( string-ref Posicion ( + add 3 ) ) #\1 ) ) #t ]
+      )
+   )
+( define ( Revisar_salto_Torre_Blanca_izquierda add  )
+   ( cond
+      ;Rey-mira-izquierda
+      [ ( or ( = add 14 ) ( = add 30 ) ( = add 46 ) ( = add 62 )  ( = add 78 ) ( = add 94 ) ( = add 110 ) ( = add 126 )) #f ]
+      [ ( and  ( > add 2 ) ( equal? ( string-ref Posicion ( - add 2 ) ) #\- ) ) ( Revisar_salto_Torre_Blanca_izquierda ( - add 2 )  )  ]
+      [ ( and  ( > add 2 ) ( or ( equal? ( string-ref Posicion ( - add 2 ) ) #\R ) ( equal? ( string-ref Posicion ( - add 2 ) ) #\T ) ) ( equal? ( string-ref Posicion ( - add 1 ) ) #\1 ) ) #t ]
+      )
+   )
+( define ( Revisar_salto_Torre_Negra_abajo add  )
+   ( cond
+      ;Rey-mira-abajo
+      [ ( or ( = add 0 ) ( = add 2 ) ( = add 4 ) ( = add 6 )  ( = add 8 ) ( = add 10 ) ( = add 12 ) ( = add 14 )) #f ]
+      [ ( and ( <= add 111 ) ( equal? ( string-ref Posicion ( + add 16 ) ) #\- ) ) ( Revisar_salto_Torre_Negra_abajo ( + add 16 ) ) ]
+      [ ( and ( <= add 111 ) ( or ( equal? ( string-ref Posicion ( + add 16 ) ) #\R ) ( equal? ( string-ref Posicion ( + add 16 ) ) #\T )) ( equal? ( string-ref Posicion ( + add 17 ) ) #\2 ) ) #t ]
+      )
+   )
+( define ( Revisar_salto_Torre_Negra_arriba add  )
+   ( cond
+      ;Rey-mira-arriba
+      [ ( or ( = add 112 ) ( = add 114 ) ( = add 116 ) ( = add 118 )  ( = add 120 ) ( = add 122 ) ( = add 124 ) ( = add 126 )) #f ]
+      [ ( and  ( >= add 16 ) ( equal? ( string-ref Posicion ( - add 16 ) ) #\- ) ) ( Revisar_salto_Torre_Negra_arriba ( - add 16 )  ) ]
+      [ ( and  ( >= add 16 ) ( or ( equal? ( string-ref Posicion ( - add 16 ) ) #\R ) ( equal? ( string-ref Posicion ( - add 16 ) ) #\T )) ( equal? ( string-ref Posicion ( - add 15 ) ) #\2 ) ) #t ]
+      )
+   )
+( define ( Revisar_salto_Torre_Negra_derecha add  )
+   ( cond
+      ;Rey-mira-derecha
+      [ ( or ( = add 0 ) ( = add 16 ) ( = add 32 ) ( = add 48 )  ( = add 64 ) ( = add 80 ) ( = add 96 ) ( = add 112 )) #f ]
+      [ ( and  ( < add 127 ) ( equal? ( string-ref Posicion ( + add 2 ) ) #\- ) ) ( Revisar_salto_Torre_Negra_derecha ( + add 2 )  ) ]
+      [ ( and  ( < add 127 ) ( or ( equal? ( string-ref Posicion ( + add 2 ) ) #\R ) ( equal? ( string-ref Posicion ( + add 2 ) ) #\T )) ( equal? ( string-ref Posicion ( + add 3 ) ) #\2 ) ) #t ]
+      )
+   )
+( define ( Revisar_salto_Torre_Negra_izquierda add  )
+   ( cond
+      ;Rey-mira-izquierda
+      [ ( or ( = add 14 ) ( = add 30 ) ( = add 46 ) ( = add 62 )  ( = add 78 ) ( = add 94 ) ( = add 110 ) ( = add 126 )) #f ]
+      [ ( and  ( > add 2 ) ( equal? ( string-ref Posicion ( - add 2 ) ) #\- ) ) ( Revisar_salto_Torre_Negra_izquierda ( - add 2 )  ) ]
+      [ ( and  ( > add 2 ) ( or ( equal? ( string-ref Posicion ( - add 2 ) ) #\R ) ( equal? ( string-ref Posicion ( - add 2 ) ) #\T ) ) ( equal? ( string-ref Posicion ( - add 1 ) ) #\2 ) ) #t ]
+      )
+   )
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DIAGONALES
+( define ( Jaque-alfil-parte-reinas )
+   ( cond
+   [( equal? #t ( Revisar_salto_alfil_Blanco_abajo_derecha ( char->integer ( string-ref add-rey-negro 0 ))  )) #t ]
+   [( equal? #t ( Revisar_salto_alfil_Blanco_abajo_izquierda ( char->integer ( string-ref add-rey-negro 0 ))  ))#t]
+   [( equal? #t ( Revisar_salto_alfil_Blanco_arriba_derecha ( char->integer ( string-ref add-rey-negro 0 ))  ))#t]
+   [( equal? #t ( Revisar_salto_alfil_Blanco_arriba_izquierda ( char->integer ( string-ref add-rey-negro 0 ))  ))#t]
+   [( equal? #t ( Revisar_salto_alfil_Negro_abajo_derecha ( char->integer ( string-ref add-rey-negro 0 ))  ))#t]
+   [( equal? #t ( Revisar_salto_alfil_Negro_abajo_izquierda ( char->integer ( string-ref add-rey-negro 0 ))  ))#t]
+   [( equal? #t ( Revisar_salto_alfil_Negro_arriba_derecha ( char->integer ( string-ref add-rey-negro 0 ))  ))#t]
+   [( equal? #t ( Revisar_salto_alfil_Negro_arriba_izquierda ( char->integer ( string-ref add-rey-negro 0 ))  ))#t]
+   )
+   )
+( define ( Revisar_salto_alfil_Blanco_abajo_derecha add  )
+   ( cond
+      ;Rey-mira-abajo
+      [ ( or ( = add 0 ) ( = add 2 ) ( = add 4 ) ( = add 6 )  ( = add 8 ) ( = add 10 ) ( = add 12 ) ( = add 14 )) #f ]
+      [ ( or ( = add 0 ) ( = add 16 ) ( = add 32 ) ( = add 48 )  ( = add 64 ) ( = add 80 ) ( = add 96 ) ( = add 112 )) #f ]
+      [ ( and ( <= add 109 ) ( equal? ( string-ref Posicion ( + add 18 ) ) #\- ) )  ( Revisar_salto_alfil_Blanco_abajo_derecha ( + add 18 ) ) ]
+      [ ( and ( <= add 109 ) ( or ( equal? ( string-ref Posicion ( + add 18 ) ) #\R ) ( equal? ( string-ref Posicion ( + add 18 ) ) #\A )) ( equal? ( string-ref Posicion ( + add 19 ) ) #\1 ) ) #t ]
+      ))
+( define ( Revisar_salto_alfil_Blanco_abajo_izquierda add  )
+   ( cond
+      ;Rey-mira-abajo
+      [ ( or ( = add 0 ) ( = add 2 ) ( = add 4 ) ( = add 6 )  ( = add 8 ) ( = add 10 ) ( = add 12 ) ( = add 14 )) #f ]
+      [ ( or ( = add 14 ) ( = add 30 ) ( = add 46 ) ( = add 62 )  ( = add 78 ) ( = add 94 ) ( = add 110 ) ( = add 126 )) #f ]
+      [ ( and  ( <= add 113 ) ( equal? ( string-ref Posicion ( + add 14 ) ) #\- ) )  ( Revisar_salto_alfil_Blanco_abajo_izquierda ( + add 14 ) ) ]
+      [ ( and   ( <= add 113 ) ( or ( equal? ( string-ref Posicion ( + add 14 ) ) #\R ) ( equal? ( string-ref Posicion ( + add 14 ) ) #\A )) ( equal? ( string-ref Posicion ( + add 15 ) ) #\1 ) ) #t ]
+      ))
+( define ( Revisar_salto_alfil_Blanco_arriba_derecha add  )
+   ( cond
+      ;Rey-mira-arriba
+      [ ( or ( = add 112 ) ( = add 114 ) ( = add 116 ) ( = add 118 )  ( = add 120 ) ( = add 122 ) ( = add 124 ) ( = add 126 )) #f ]
+      [ ( or ( = add 0 ) ( = add 16 ) ( = add 32 ) ( = add 48 )  ( = add 64 ) ( = add 80 ) ( = add 96 ) ( = add 112 )) #f ]
+      [ ( and ( >= add 14 ) ( equal? ( string-ref Posicion ( - add 14 ) ) #\- ) )  ( Revisar_salto_alfil_Blanco_arriba_derecha ( - add 18 ) ) ]
+      [ ( and ( >= add 14 ) ( or ( equal? ( string-ref Posicion ( - add 14 ) ) #\R ) ( equal? ( string-ref Posicion ( - add 14 ) ) #\A )) ( equal? ( string-ref Posicion ( - add 13 ) ) #\1 ) ) #t ]
+      ))
+( define ( Revisar_salto_alfil_Blanco_arriba_izquierda add  )
+   ( cond
+      ;Rey-mira-arriba
+      [ ( or ( = add 112 ) ( = add 114 ) ( = add 116 ) ( = add 118 )  ( = add 120 ) ( = add 122 ) ( = add 124 ) ( = add 126 )) #f ]
+      [ ( or ( = add 14 ) ( = add 30 ) ( = add 46 ) ( = add 62 )  ( = add 78 ) ( = add 94 ) ( = add 110 ) ( = add 126 )) #f ]
+      [ ( and  ( >= add 18 ) ( equal? ( string-ref Posicion ( - add 18 ) ) #\- ) )  ( Revisar_salto_alfil_Blanco_arriba_izquierda ( - add 18 ) ) ]
+      [ ( and   ( >= add 18 ) ( or ( equal? ( string-ref Posicion ( - add 18 ) ) #\R ) ( equal? ( string-ref Posicion ( - add 18 ) ) #\A )) ( equal? ( string-ref Posicion ( - add 17 ) ) #\1 ) ) #t ]
+      ))
+( define ( Revisar_salto_alfil_Negro_abajo_derecha add  )
+   ( cond
+      ;Rey-mira-abajo
+      [ ( or ( = add 0 ) ( = add 2 ) ( = add 4 ) ( = add 6 )  ( = add 8 ) ( = add 10 ) ( = add 12 ) ( = add 14 )) #f ]
+      [ ( or ( = add 0 ) ( = add 16 ) ( = add 32 ) ( = add 48 )  ( = add 64 ) ( = add 80 ) ( = add 96 ) ( = add 112 )) #f ]
+      [ ( and ( <= add 109 ) ( equal? ( string-ref Posicion ( + add 18 ) ) #\- ) )  ( Revisar_salto_alfil_Negro_abajo_derecha ( + add 18 ) ) ]
+      [ ( and ( <= add 109 ) ( or ( equal? ( string-ref Posicion ( + add 18 ) ) #\R ) ( equal? ( string-ref Posicion ( + add 18 ) ) #\A )) ( equal? ( string-ref Posicion ( + add 19 ) ) #\1 ) ) #t ]
+      ))
+( define ( Revisar_salto_alfil_Negro_abajo_izquierda add  )
+   ( cond
+      ;Rey-mira-abajo
+      [ ( or ( = add 0 ) ( = add 2 ) ( = add 4 ) ( = add 6 )  ( = add 8 ) ( = add 10 ) ( = add 12 ) ( = add 14 )) #f ]
+      [ ( or ( = add 14 ) ( = add 30 ) ( = add 46 ) ( = add 62 )  ( = add 78 ) ( = add 94 ) ( = add 110 ) ( = add 126 )) #f ]
+      [ ( and  ( <= add 113 ) ( equal? ( string-ref Posicion ( + add 14 ) ) #\- ) )  ( Revisar_salto_alfil_Negro_abajo_izquierda ( + add 14 ) ) ]
+      [ ( and   ( <= add 113 ) ( or ( equal? ( string-ref Posicion ( + add 14 ) ) #\R ) ( equal? ( string-ref Posicion ( + add 14 ) ) #\A )) ( equal? ( string-ref Posicion ( + add 15 ) ) #\1 ) ) #t ]
+      ))
+( define ( Revisar_salto_alfil_Negro_arriba_derecha add  )
+   ( cond
+      ;Rey-mira-arriba
+      [ ( or ( = add 112 ) ( = add 114 ) ( = add 116 ) ( = add 118 )  ( = add 120 ) ( = add 122 ) ( = add 124 ) ( = add 126 )) #f ]
+      [ ( or ( = add 0 ) ( = add 16 ) ( = add 32 ) ( = add 48 )  ( = add 64 ) ( = add 80 ) ( = add 96 ) ( = add 112 )) #f ]
+      [ ( and ( >= add 14 ) ( equal? ( string-ref Posicion ( - add 14 ) ) #\- ) )  ( Revisar_salto_alfil_Negro_arriba_derecha ( - add 18 ) ) ]
+      [ ( and ( >= add 14 ) ( or ( equal? ( string-ref Posicion ( - add 14 ) ) #\R ) ( equal? ( string-ref Posicion ( - add 14 ) ) #\A )) ( equal? ( string-ref Posicion ( - add 13 ) ) #\1 ) ) #t ]
+      ))
+( define ( Revisar_salto_alfil_Negro_arriba_izquierda add  )
+   ( cond
+      ;Rey-mira-arriba
+      [ ( or ( = add 112 ) ( = add 114 ) ( = add 116 ) ( = add 118 )  ( = add 120 ) ( = add 122 ) ( = add 124 ) ( = add 126 )) #f ]
+      [ ( or ( = add 14 ) ( = add 30 ) ( = add 46 ) ( = add 62 )  ( = add 78 ) ( = add 94 ) ( = add 110 ) ( = add 126 )) #f ]
+      [ ( and  ( >= add 18 ) ( equal? ( string-ref Posicion ( - add 18 ) ) #\- ) )  ( Revisar_salto_alfil_Negro_arriba_izquierda ( - add 18 ) ) ]
+      [ ( and   ( >= add 18 ) ( or ( equal? ( string-ref Posicion ( - add 18 ) ) #\R ) ( equal? ( string-ref Posicion ( - add 18 ) ) #\A )) ( equal? ( string-ref Posicion ( - add 17 ) ) #\1 ) ) #t ]
+      ))
+;----------------------------------------------JAQUE-MATE----------------------------------------------------------------------
+( define ( Jaque-mate )
+   ( if ( equal? #f ( Revisar_casillas ) )
+        (void)
+        ( begin
+           ( string-set! Posicion ( - ( char->integer ( string-ref  add_nuevo 0 ) ) 16 ) #\- );NIRARA ACA
+           ( string-set! Posicion ( - ( char->integer ( string-ref  add_nuevo 0 ) ) 15 ) #\- )
+           ( string-set! Posicion ( - ( char->integer ( string-ref add_viejo 0 ) ) 16) ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 ) ) 16)) )
+           ( string-set! Posicion ( - ( char->integer ( string-ref  add_viejo 0 ) ) 15 ) ( string-ref Posicion ( - ( char->integer ( string-ref add_viejo 0 ) ) 15)) )
+           ( Hacer_click1 ))
+        ))
+;-------------------------------------IMAGENES-DE-LAS-FICHAS-------------------------------------------------------------------
+
+( define ( Imprimir_fichas contx )
+   ( ( ( draw-pixmap-posn "Turno1.png" ) Pantalla_De_Juego ) ( make-posn 680 25 ) )
+   ( cond
+      [ ( <= contx 9 ) (((draw-pixmap-posn ( substring Imagenes ( + ( - contx 1 ) ( * 5 contx )) ( + 5 contx ( * contx 5 ) ) )) Pantalla_De_Juego)
+                        (make-posn ( * 75 ( - contx 1 ) ) 55 ))  ( Imprimir_fichas ( + 1 contx ) ) ]
+      [ ( < contx 18 ) (((draw-pixmap-posn ( substring Imagenes ( + ( - contx 1 ) ( * 5 contx )) ( + 5 contx ( * contx 5 ) ) )) Pantalla_De_Juego)
+                        (make-posn ( - ( * 75 ( - contx 1 ) ) 605 ) 130 ))  ( Imprimir_fichas ( + 1 contx ) ) ]
+      [ ( <= contx 25 ) (((draw-pixmap-posn ( substring Imagenes ( + ( - contx 1 ) ( * 5 contx )) ( + 5 contx ( * contx 5 ) ) )) Pantalla_De_Juego)
+                        (make-posn ( - ( * 75 ( - contx 1 ) ) 1205 ) 505 ))  ( Imprimir_fichas ( + 1 contx ) ) ]
+      [ ( <= contx 33 ) (((draw-pixmap-posn ( substring Imagenes ( + ( - contx 1 ) ( * 5 contx )) ( + 5 contx ( * contx 5 ) ) )) Pantalla_De_Juego)
+                        (make-posn ( - ( * 75 ( - contx 1 ) ) 1800 ) 580 ))  ( Imprimir_fichas ( + 1 contx ) ) ]
+      );Final del cond.
+   );Final de la funcion Imprimir_fichas
+( Imprimir_fichas 2 )
+( Hacer_click1 )
+
